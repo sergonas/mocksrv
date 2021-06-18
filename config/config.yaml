@@ -1,0 +1,13 @@
+port: :8080
+roots:
+  - name: test root
+    method: GET
+    path: /test
+    response:
+      code: 422
+      headers:
+        Content-Type: application/json
+      body: >-
+        {
+          "test": "RESPONSE"
+        }
