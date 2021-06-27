@@ -1,16 +1,17 @@
 package mocksrv
 
 import (
-	"log"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-func Run(handler func(http.ResponseWriter, *http.Request)) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handler)
-	s := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
-	}
-	log.Fatal(s.ListenAndServe())
+func Run(config ConfigRoot, handler *gin.Engine) {
+	// mux := http.NewServeMux()
+	// mux.HandleFunc("/", handler)
+	// s := &http.Server{
+	// 	Addr:    ":8080",
+	// 	Handler: mux,
+	// }
+	// log.Fatal(s.ListenAndServe())
+
+	handler.Run(config.Port)
 }

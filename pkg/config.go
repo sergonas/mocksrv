@@ -8,28 +8,40 @@ import (
 )
 
 const (
-	Proxy   = "PROXY"
-	Respond = "RESPOND"
-	Timeout = "TIMEOUT"
+	ProxyType   = "PROXY"
+	RespondType = "RESPOND"
+	TimeoutType = "TIMEOUT"
 )
 
 type ConfigRoot struct {
-	Port       string `yaml:"port"`
-	ConfigPort string `yaml:"configPort"`
-	Roots      []Root `yaml:"roots"`
+	Port       string  `yaml:"port"`
+	ConfigPort string  `yaml:"configPort"`
+	Proxies    []Proxy `yaml:"proxies"`
+	Roots      []Root  `yaml:"roots"`
 }
 
 type Root struct {
-	Name     string   `yaml:"name"`
 	Method   string   `yaml:"method"`
 	Path     string   `yaml:"path"`
 	Response Response `yaml:"response"`
 }
 
+type Proxy struct {
+	Id   string `yaml:"id"`
+	Host string `yaml:"host"`
+}
+
 type Response struct {
-	Code    int               `yaml:"code"`
-	Body    string            `yaml:"body"`
+	Type    string            `yaml:"type"`
 	Headers map[string]string `yaml:"headers"`
+
+	//Proxy
+	ProxyPath string `yaml:"proxyPath"`
+	ProxyId   string `yaml:"proxyId"`
+
+	//Response
+	Code int    `yaml:"code"`
+	Body string `yaml:"body"`
 }
 
 func Parse(configPath string) ConfigRoot {

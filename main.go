@@ -14,7 +14,7 @@ var (
 func main() {
 	flag.Parse()
 	config = mocksrv.Parse(*configPath)
-	handler := mocksrv.Handler(config.Roots)
+	handler := mocksrv.Handler(config)
 
-	mocksrv.Run(handler)
+	mocksrv.Run(config, handler)
 }

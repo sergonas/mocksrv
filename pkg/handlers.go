@@ -1,37 +1,58 @@
 package mocksrv
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
-	"math/rand"
-	"net/http"
+	"net/http/httputil"
+	"net/url"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Handler(roots []Root) func(http.ResponseWriter, *http.Request) {
-	return func(resp http.ResponseWriter, req *http.Request) {
-		reqId := rand.Int31()
-		reqBody, _ := ioutil.ReadAll(req.Body)
-		log.Printf("(%8X) Request: [Method: %v, Path: %v, Body: %v]",
-			reqId,
-			req.Method,
-			req.URL.Path,
-			string(reqBody))
-		for _, r := range roots {
-			if r.Path == req.URL.Path && r.Method == req.Method {
-				log.Printf("(%8X) Found handler %v", reqId, r.Name)
-				headers := r.Response.Headers
-				for k, v := range headers {
-					resp.Header().Add(k, v)
-				}
-				if r.Response.Code != 0 {
-					resp.WriteHeader(r.Response.Code)
-				}
-				fmt.Fprintf(resp, r.Response.Body)
-				return
-			}
-		}
+func Handler(config ConfigRoot) *gin.Engine {
+	r := gin.Default()
+	proxies := createProxies(config.Proxies)
+	createRoots(r, config.Roots, proxies)
 
-		log.Printf("(%8X) No handlers found", reqId)
+	return r
+}
+
+func createProxies(proxies []Proxy) map[string]*httputil.ReverseProxy {
+	proxiesMap := make(map[string]*httputil.ReverseProxy)
+	for _, proxy := range proxies {
+		proxyUrl, err := url.Parse(proxy.Host)
+		if err != nil {
+			log.Fatal(err)
+		}
+		proxiesMap[proxy.Id] = httputil.NewSingleHostReverseProxy(proxyUrl)
+	}
+
+	return proxiesMap
+}
+
+func createRoots(r *gin.Engine, roots []Root, proxies map[string]*httputil.ReverseProxy) {
+	for _, root := range roots {
+		resp := root.Response
+		r.Handle(root.Method, root.Path, func(c *gin.Context) {
+			switch resp.Type {
+			case ProxyType:
+				proxy := proxies[resp.ProxyId]
+
+				if resp.ProxyPath != "" {
+					c.Request.URL.Path = resp.ProxyPath
+				}
+				if len(resp.Headers) > 0 {
+					for k, v := range resp.Headers {
+						c.Request.Header.Add(k, v)
+					}
+				}
+
+				proxy.ServeHTTP(c.Writer, c.Request)
+			case RespondType:
+				for k, v := range root.Response.Headers {
+					c.Header(k, v)
+				}
+				c.String(resp.Code, resp.Body)
+			}
+		})
 	}
 }
